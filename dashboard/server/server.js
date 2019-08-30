@@ -34,17 +34,47 @@ const updateItem = (item, cb) => {
   }, item, {
     upsert: true,
   }, (err, done) => {
-    console.log(done);
-    console.log(err);
     cb();
   });
 };
+
+const updateItemConnections = (parsedItem, parseItemOptions, res) => {
+  if (parseItemOptions.connectChanged) {
+    // Connect [1, 2, 3]
+    let counter = 0;
+    parsedItem.connect.forEach((c) => {
+      Items.findOne({
+        id: c,
+      }, (err, connectItem) => {
+        if (!connectItem.connect.includes(parsedItem.id)) {
+          // eslint-disable-next-line no-param-reassign
+          connectItem.connect = [...connectItem.connect, parsedItem.id].sort((a, b) => (a - b));
+          connectItem.save((err) => {
+            if (err) {
+              console.error('ERROR!');
+            }
+            // eslint-disable-next-line no-plusplus
+            counter++;
+            if (counter === parsedItem.connect.length) {
+              res.send('success');
+            }
+          });
+        }
+      });
+    });
+  } else {
+    res.send('success');
+  }
+};
+
 app.post('/update/item', multipartMiddleware, (req, res) => {
   const file = req.files.image;
   const {
     item,
+    itemOptions,
   } = req.body;
   const parsedItem = JSON.parse(item);
+  const parseItemOptions = JSON.parse(itemOptions);
   if (file) {
     const options = {
       public_id: file.originalFilename.split('.')[0],
@@ -56,7 +86,7 @@ app.post('/update/item', multipartMiddleware, (req, res) => {
         // file removed
         parsedItem.logo.src = result.url;
         updateItem(parsedItem, () => {
-          res.send('success');
+          updateItemConnections(parsedItem, parseItemOptions, res);
         });
       } catch (err) {
         console.error(err);
@@ -64,7 +94,7 @@ app.post('/update/item', multipartMiddleware, (req, res) => {
     });
   } else {
     updateItem(parsedItem, () => {
-      res.send('success');
+      updateItemConnections(parsedItem, parseItemOptions, res);
     });
   }
 });

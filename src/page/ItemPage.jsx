@@ -84,6 +84,7 @@ class ItemPage extends React.Component<Props, State> {
 
   render() {
     const {
+      allItems,
       baseItems,
       selected,
     } = this.props;
@@ -125,7 +126,7 @@ class ItemPage extends React.Component<Props, State> {
     const {
       duplicate,
       nonDuplicate,
-    } = parse(combinations, selected);
+    } = parse(combinations, selected, allItems);
 
     return (
       <div className="item-page">

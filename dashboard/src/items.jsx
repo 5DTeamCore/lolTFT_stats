@@ -9,6 +9,7 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
 import Modal from '@material-ui/core/Modal';
+import TablePagination from '@material-ui/core/TablePagination';
 import ItemModal from './component/itemModal';
 
 // css
@@ -19,7 +20,10 @@ type Props = {||};
 type State = {
   items: any,
   selected: Object,
+  lastId: number,
   modalOpen: boolean,
+  rowsPerPage: number,
+  page: number,
 }
 
 class Items extends React.Component<Props, State> {
@@ -28,7 +32,10 @@ class Items extends React.Component<Props, State> {
     selected: {
 
     },
+    lastId: 0,
     modalOpen: false,
+    rowsPerPage: 5,
+    page: 0,
   }
 
   componentDidMount() {
@@ -38,8 +45,15 @@ class Items extends React.Component<Props, State> {
   getItemData() {
     axios.get('http://localhost:8001/items')
       .then((response) => {
+        let highestId = 0;
+        response.data.forEach((item) => {
+          if (item.id > highestId) {
+            highestId = item.id;
+          }
+        });
         this.setState({
           items: response.data,
+          lastId: highestId + 1,
         });
       });
   }
@@ -54,6 +68,9 @@ class Items extends React.Component<Props, State> {
   handleClose = (updateData: any) => {
     this.setState({
       modalOpen: false,
+      selected: {
+
+      },
     }, () => {
       if (updateData) {
         this.getItemData();
@@ -61,14 +78,42 @@ class Items extends React.Component<Props, State> {
     });
   };
 
+  handleChangePage = (event, newPage) => {
+    this.setState({
+      page: newPage,
+    });
+  }
+
+  handleChangeRowsPerPage = (event) => {
+    this.setState({
+      page: 0,
+      rowsPerPage: event.target.value,
+    });
+  }
 
   render() {
     const {
       items,
+      lastId,
+      rowsPerPage,
+      page,
     } = this.state;
     return (
       <div>
         <div className="title">Items</div>
+        <div className="create-btn-container">
+          <button
+            className="create-btn"
+            type="submit"
+            onClick={() => {
+              this.handleOpen({
+                id: lastId,
+              });
+            }}
+          >
+Create
+          </button>
+        </div>
         <Paper>
           <Table>
             <TableHead>
@@ -83,7 +128,7 @@ class Items extends React.Component<Props, State> {
               </TableRow>
             </TableHead>
             <TableBody>
-              {items.map((item) => (
+              {items.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item) => (
                 <TableRow key={item.name}>
                   <TableCell>{item.id}</TableCell>
                   <TableCell>
@@ -98,6 +143,21 @@ class Items extends React.Component<Props, State> {
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={items.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            backIconButtonProps={{
+              'aria-label': 'previous page',
+            }}
+            nextIconButtonProps={{
+              'aria-label': 'next page',
+            }}
+            onChangePage={this.handleChangePage}
+            onChangeRowsPerPage={this.handleChangeRowsPerPage}
+          />
         </Paper>
         <Modal
           aria-labelledby="simple-modal-title"
