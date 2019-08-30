@@ -18,7 +18,8 @@ type Props = {
 type State = {
   file: File | string,
   imagePreviewUrl: string,
-  item: any
+  item: any,
+  connectChanged: boolean,
 }
 
 class ItemModal extends React.Component<Props, State> {
@@ -29,15 +30,20 @@ class ItemModal extends React.Component<Props, State> {
       ...this.props.selected,
       ...this.props.selected.logo,
     },
+    connectChanged: false,
   }
 
   handleInputChange = (key: any, event: any) => {
+    const {
+      item,
+    } = this.state;
     const val = event.target.value;
     this.setState({
       item: {
-        ...this.state.item,
+        ...item,
         [key]: val,
       },
+      connectChanged: key === 'connect',
     });
   }
 
@@ -51,7 +57,7 @@ class ItemModal extends React.Component<Props, State> {
         src: data.src,
         alt: data.alt,
       },
-      connect: data.connect,
+      connect: JSON.parse(`[${data.connect}]`),
     };
   }
 
@@ -59,10 +65,14 @@ class ItemModal extends React.Component<Props, State> {
     const {
       file,
       item,
+      connectChanged,
     } = this.state;
     const formData = new FormData();
     formData.append('image', file);
     formData.append('item', JSON.stringify(this.parsePayload(item)));
+    formData.append('itemOptions', JSON.stringify({
+      connectChanged,
+    }));
     axios.post('http://localhost:8001/update/item', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -90,7 +100,6 @@ class ItemModal extends React.Component<Props, State> {
     const {
       item,
     } = this.state;
-    console.log(item);
 
     const inputFields = itemConfig.map((config) => {
       const {
@@ -98,11 +107,13 @@ class ItemModal extends React.Component<Props, State> {
         title,
         type,
         options,
+        width,
       } = config;
+      let component = null;
       switch (type) {
       case 'TEXT':
-        return (
-          <div className="input-row">
+        component = (
+          <div>
             <InputLabel>{title}</InputLabel>
             <Input
               value={item[key]}
@@ -110,9 +121,10 @@ class ItemModal extends React.Component<Props, State> {
             />
           </div>
         );
+        break;
       case 'TEXTAREA':
-        return (
-          <div className="input-row">
+        component = (
+          <div>
             <InputLabel>{title}</InputLabel>
             <TextareaAutosize
               className="text-area"
@@ -122,15 +134,23 @@ class ItemModal extends React.Component<Props, State> {
             />
           </div>
         );
+        break;
       case 'IMAGE':
-        return (
-          <div className="input-row">
+        component = (
+          <div>
             <img src={item[key]} />
+            <input
+              className="fileInput"
+              type="file"
+              onChange={(e) => this.handleImageChange.call(this, e)}
+            />
+            <img src={this.state.imagePreviewUrl} />
           </div>
         );
+        break;
       case 'SELECT':
-        return (
-          <div className="input-row">
+        component = (
+          <div>
             <InputLabel>{title}</InputLabel>
             <Select
               value={item[key]}
@@ -146,25 +166,34 @@ class ItemModal extends React.Component<Props, State> {
             </Select>
           </div>
         );
-      default:
         break;
+      default:
+        return null;
       }
+      return (
+        <div
+          className="input-row"
+          style={{
+            width: `${width}%`,
+            display: 'inline-block',
+            boxSizing: 'border-box',
+          }}
+        >
+          {component}
+        </div>
+      );
     });
     return (
       <div>
         {inputFields}
-        <input
-          className="fileInput"
-          type="file"
-          onChange={(e) => this.handleImageChange.call(this, e)}
-        />
-        <button
-          type="button"
-          onClick={(e) => this.handleSubmit.call(this, e)}
-        >
-Upload
-        </button>
-        <img alt="preview" src={this.state.imagePreviewUrl} />
+        <div>
+          <button
+            type="button"
+            onClick={(e) => this.handleSubmit.call(this, e)}
+          >
+Submit
+          </button>
+        </div>
       </div>
     );
   }

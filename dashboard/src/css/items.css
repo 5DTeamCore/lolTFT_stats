@@ -27,9 +27,15 @@
 }
 
 .input-row {
-  margin: 20px 0px;
+  padding: 20px 0px;
+  vertical-align: top;
 }
 
 .text-area {
   min-width: 300px;
+}
+
+.create-btn-container {
+  text-align: end;
+  padding-bottom: 10px;
 }
